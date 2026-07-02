@@ -1,0 +1,52 @@
+
+# ----------------------------------------
+# Directory paths for datasets and output
+# ----------------------------------------
+
+# Required: Specify the path to the dataset directory. It must contain 'images' and 'labels' subdirectories.
+dataset_path:                 
+
+# Required: Specify the path to the output directory for pruned datasets.
+output_path:                                     
+
+# ----------------------------------------
+# Pruning configuration
+# ----------------------------------------
+
+# Required: Specify the model for extracting logits for pruning strategies that require it ("unet" or "medsam").
+pruning_model:
+
+# Required: Specify the pruning rate (between 0 and 1) for pruning.
+pruning_rate:    
+
+# Required: Specify the pruning strategy for pruning ("iou", "cb-scs", "el2n", "entropy", "forgetting", "fusion").
+strategy:           
+
+# Required: Specify the selection method for pruning ("easy", "hard", "mixed").
+selection:                
+
+# Optional: Specify the path to the logits file (.h5) for pruning strategies that require it. If not provided, logits will be extracted using the specified pruning model.
+logits_path:
+
+# ----------------------------------------
+# Intermediate model configuration
+# ----------------------------------------
+
+# Required: Set the batch size for U-Net or MedSAM when extracting logits for pruning strategies that require it.
+batch_size:                       
+
+# ----------------------------------------
+# Training configuration
+# ----------------------------------------
+
+# Optional: Set a seed for reproducibility when using U-Net.
+seed:                             
+
+# Optional: Set the number of epochs for training when using U-Net. Default is 10. 
+epochs:       
+
+# Optional: Set the validation size for training when using U-Net. Between 0 and 1, representing the proportion of the dataset to use for validation (default: 0.2).
+val_size:
+
+# Optional: Set the alpha value for training when using the fusion strategy. Between 0 and 1, representing the weight of the CB-SCS score in the fusion strategy (default: 0.5).
+alpha:                            

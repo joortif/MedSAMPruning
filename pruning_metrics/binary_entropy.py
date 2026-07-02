@@ -21,3 +21,6 @@ def bernoulli_entropy(logits_mask):
     if not torch.isfinite(entropy).all():
         warnings.warn("Some elements from entropy are inf or -inf", RuntimeWarning)
     return entropy
+
+def compute_entropy(logits, gt_mask):
+    return bernoulli_entropy(logits)

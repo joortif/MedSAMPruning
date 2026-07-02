@@ -1,10 +1,9 @@
-import argparse
 from pathlib import Path
 import requests
 
 DATASETS = {
-    "BUSI": 20538442,
-    "MMOTU": 20541610,
+    "BUSI": 21128640,
+    "MMOTU": 21128657,
 }
 
 def download_dataset(dataset_name: str, outdir: str):
@@ -19,17 +18,13 @@ def download_dataset(dataset_name: str, outdir: str):
     meta_resp.raise_for_status()
     meta = meta_resp.json()
 
-    root = Path(outdir).expanduser() if outdir is not None else Path(__file__).resolve().parents[2] / "data"
-    out_path = root / dataset_name
-    out_path.mkdir(parents=True, exist_ok=True)
-
     for file_info in meta.get("files", []):
         file_name = file_info["key"]
         download_url = file_info["links"]["self"]
 
-        dest = out_path / file_name
+        dest = Path(outdir) / file_name
 
-        print(f"Downloading {file_name}...")
+        print(f"Downloading {file_name} from {download_url}...")
         with requests.get(download_url, stream=True, timeout=120) as r:
             r.raise_for_status()
             with open(dest, "wb") as f:

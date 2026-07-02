@@ -1,10 +1,16 @@
+from collections import defaultdict
 import os
 import torch
 from typing import Optional, Any
+from PIL import Image
+
+from tqdm import tqdm
 
 from models.smp.exceptions import NoValidAutobatchConfigException
 
 AUTOBATCH_SIZES: tuple = (1, 2, 4, 8, 16, 32, 64)
+VALID_EXTENSIONS: tuple = ('.jpg', '.jpeg', '.png', '.bmp', '.tiff')
+IMAGE_RESIZE_VALUES: tuple = (224, 384, 512, 640, 1024)
 
 def calculate_model_size(model: torch.nn.Module):
     param_size = 0
@@ -238,3 +244,65 @@ def autobatch(
 
     print(f"Best batch size found:{best_batch}")
     return best_batch 
+
+def image_sizes(directory): 
+        """
+        Returns the sizes of the images in the directory.
+        Also calculates the average width and height.
+        """
+        images_sizes = defaultdict(int)
+        total_width = 0
+        total_height = 0
+
+        for fname in tqdm(os.listdir(directory), desc="Reading files"):
+            fpath = os.path.join(directory, fname)
+            if fname.lower().endswith(tuple(VALID_EXTENSIONS)):   
+                with Image.open(fpath) as img:
+                    width, height = img.size
+                    total_width += width
+                    total_height += height
+                    images_sizes[(width, height)] += 1
+
+        mode_height, mode_width = max(set(images_sizes), key=list(images_sizes.values()).count)
+        sorted_sizes = sorted(images_sizes.items(), key=lambda item: item[1], reverse=True)
+        images_sizes = dict(sorted_sizes)
+        
+        for size, count in images_sizes.items():
+            width, height = size
+
+        avg_width = round(total_width / len(images_sizes))
+        avg_height = round(total_height / len(images_sizes))
+        print(f"Average image size: {avg_height}x{avg_width}")
+        print(f"Image size mode: {mode_height}x{mode_width}")
+
+        return mode_height, mode_width
+
+def calculate_closest_resize(mode_height, mode_width, stride=32, max_padding=16):
+
+        valid_sizes = [s for s in IMAGE_RESIZE_VALUES if s % stride == 0]
+
+        original_mode_height = mode_height
+        original_mode_width = mode_width
+
+        if mode_height != mode_width:
+            max_side = max(mode_height, mode_width)
+            print(f"Making size square by using {max_side}px height and {max_side}px width.")
+            mode_height = mode_width = max_side
+
+        closest_height = min(valid_sizes, key=lambda x: abs(x - mode_height))
+        diff_height = abs(closest_height - mode_height)
+        if diff_height <= max_padding:
+            if closest_height != mode_height:
+                print(f"Dimensions {mode_height}px adjusted to {closest_height}px (compatible with stride {stride}).")
+            mode_height = mode_width = closest_height
+        else:
+            lower_valid = [s for s in valid_sizes if s <= mode_height]
+            new_height = max(lower_valid) if lower_valid else min(valid_sizes)
+            if new_height != mode_height:
+                print(f"Dimensions {mode_height}px adjusted down to {new_height}px (compatible with stride {stride}).")
+            mode_height = mode_width = new_height
+
+        if original_mode_height != mode_height or original_mode_width != mode_height:
+            print(f"Images will be resized to {mode_height}px height and {mode_width}px width.")
+            
+        return mode_height

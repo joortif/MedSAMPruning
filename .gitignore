@@ -1,2 +1,5 @@
 *.pth
 __pycache__/
+test_*.py
+*_test.yaml
+.vscode/

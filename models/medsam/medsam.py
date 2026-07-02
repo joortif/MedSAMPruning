@@ -87,10 +87,10 @@ def process_medsam_batches(
     mask_paths,
     medsam_model,
     device,
+    save_dir,
     imgsz=1024,
     batch_size=4,
-    save_dir="results/medsam/mmotu",
-    h5_name="logits.h5",
+    h5_name="medsam_logits.h5",
 ):
    
     save_dir = Path(save_dir)

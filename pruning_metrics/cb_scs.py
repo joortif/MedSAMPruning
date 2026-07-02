@@ -1,12 +1,14 @@
+import os
+from pathlib import Path
 import time
 import cv2
 import math
 from collections import defaultdict
 import numpy as np
-import tqdm as tqdm
+from tqdm import tqdm
 import csv
 
-from .utils import extract_instances_from_semantic_mask
+from .utils import extract_instances_from_semantic_mask, png_to_semantic_mask
 
 def contour_perimeter_and_area(binary_mask):
     img = (binary_mask * 255).astype(np.uint8)
@@ -26,7 +28,13 @@ def scs(perimeter, area):
 def si_scs(perimeter, area):
     return perimeter / (2.0 * math.sqrt(math.pi * area))
 
-def cb_scs(masks, out_csv_path=None):
+def cb_scs(mask_path, out_csv_path):
+
+    masks = {}
+    for label in os.listdir(mask_path):
+        
+        label_name = os.path.splitext(label)[0]
+        masks[label_name] = png_to_semantic_mask(os.path.join(mask_path,label))
 
     all_instances = []  
     per_image_instances = {}
@@ -59,13 +67,26 @@ def cb_scs(masks, out_csv_path=None):
     end = time.time()
     total_time = end - start
     
-    print(f"Total time: {total_time}")
+    print(f"Total time: {total_time:.2f}s")
 
-    rows = sorted(image_cb_scores.items(), key=lambda x: x[0])
-    with open(out_csv_path, mode='w', newline='', encoding='utf-8') as f:
+    Path(out_csv_path).parent.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    sorted_scores = sorted(
+        image_cb_scores.items(),
+        key=lambda x: x[1]  
+    )  
+
+    with open(out_csv_path, mode="w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f, delimiter=";")
-        writer.writerow(['id', 'cb-scs'])
-        for img_id, score in image_cb_scores.items():
-            writer.writerow([img_id, score])
+        writer.writerow(["id", "cb-scs"])
 
-    return image_cb_scores, per_image_instances, class_totals
+        for img_id, score in sorted_scores:
+            writer.writerow([
+                img_id,
+                f"{score}".replace(".", ",")
+            ])
+
+    return image_cb_scores
