@@ -1,5 +1,5 @@
 from pathlib import Path
-from time import time
+import time
 
 import h5py
 import torch
@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 from tqdm import tqdm
 
-from models.medsam import download_medsam
+from models.medsam.download_medsam import download_medsam
 from models.medsam.utils import mask_to_bbox, preprocess_image, preprocess_mask
 
 @torch.no_grad()
@@ -56,11 +56,12 @@ def medsam_inference(medsam_model, img_embed, box, mask, H, W, threshold=0.5):
     medsam_seg = (low_res_pred > threshold).astype(np.uint8)
     return medsam_seg
 
-def predict_medsam(image, mask, mask_original, H, W, bbox=True, uniform_pad=False, medsam_model=None, device="cpu"):
+def predict_medsam(image, mask, mask_original, H, W, bbox=True, uniform_pad=False, medsam_model=None, device="cpu", model_path=None):
     
     if medsam_model is None:
-        medsam_model = download_medsam(device=device)
-
+        medsam_path = download_medsam(output_dir=model_path)
+        medsam_model = load_medsam(medsam_path)
+        
     if isinstance(mask, torch.Tensor):
         mask = mask.detach().cpu()
 

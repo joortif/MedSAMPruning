@@ -1,6 +1,6 @@
 import shutil
 
-from anyio import Path
+from pathlib import Path
 import cv2
 import numpy as np
 import os
@@ -141,6 +141,7 @@ def split_dataset(images_dir, labels_dir, output_base, val_size, seed=42):
 
     for d in [train_img_dir, train_lbl_dir, val_img_dir, val_lbl_dir]:
         d.mkdir(parents=True, exist_ok=True)
+        
 
     image_files = sorted([f for f in images_dir.iterdir() if f.is_file()])
 

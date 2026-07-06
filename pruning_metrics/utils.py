@@ -113,7 +113,7 @@ def weighted_image_score(fg_score, bg_score, alpha=0.9):
     return alpha * fg_score + (1-alpha) * bg_score 
 
 def preprocess_gt(mask_path, resize=False, imgsz=256):
-    
+        
     m = cv2.imread(str(mask_path), cv2.IMREAD_UNCHANGED)
 
     if m.ndim == 3 and m.shape[2] == 4:
@@ -133,6 +133,33 @@ def preprocess_gt(mask_path, resize=False, imgsz=256):
 
         gt_mask_resize = torch.from_numpy(mask_resized)
     return gt_mask, gt_mask_resize
+
+def preprocess_image_tta(image_path, resize=True, imgsz=1024):
+    img = cv2.imread(image_path, cv2.IMREAD_UNCHANGED)
+    
+    if img.ndim == 2:
+        img_3c = np.stack([img, img, img], axis=-1)
+    else:
+        if img.shape[2] == 4:
+            img = img[:, :, :3]
+        img_3c = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        
+    H, W = img_3c.shape[:2]
+    
+    img_1024 = None
+    
+    if resize:
+    
+        img_resized = cv2.resize(img_3c, (imgsz, imgsz), interpolation=cv2.INTER_LINEAR)
+        img_1024 = img_resized.astype(np.uint8)
+        
+        minv = float(img_1024.min())
+        maxv = float(img_1024.max())
+        denom = max(maxv - minv, 1e-8)
+        denom = maxv - minv if (maxv - minv) >= 1e-8 else 1e-8
+        img_1024 = (img_1024 - minv) / denom
+
+    return img_3c, img_1024, H, W
 
 def preprocess_image_and_mask(img, gt):
     gt_numpy = gt
@@ -167,8 +194,7 @@ def get_data_from_name(h5_file, image_name, exclude=None):
         
     with h5py.File(h5_file, 'r') as f:
         
-        grp_path = f"imgs/{image_name}"
-                
+        grp_path = f"imgs/{image_name}"  
         grp = f[grp_path]
         
         if 'logits_low' in grp:
@@ -219,8 +245,6 @@ def compute_ranking_scores(image_path, mask_path, logits_path, metric_fn, metric
     total_time = time.time() - start
 
     print(f"Total elapsed time: {total_time:.2f}s")
-    print(f"Mean {metric_name}: {np.mean(metric_times):.2f}s")
-    print(f"Std {metric_name}: {np.std(metric_times):.2f}s")
 
     df_scores = pd.DataFrame(scores_list)
 

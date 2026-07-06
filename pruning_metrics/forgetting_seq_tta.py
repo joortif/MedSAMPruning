@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from time import time
+import time
 
 import numpy as np
 import albumentations as A
@@ -9,8 +9,8 @@ import torch
 from tqdm import tqdm
 
 from models.medsam.medsam import predict_medsam
-from models.medsam.utils import preprocess_image
-from pruning_metrics.utils import average_class_score, preprocess_gt, preprocess_image_and_mask, weighted_image_score
+from models.medsam.download_medsam import download_medsam, load_medsam
+from pruning_metrics.utils import average_class_score, preprocess_gt, preprocess_image_and_mask, preprocess_image_tta, weighted_image_score
 
 seq_test_time_augments = [
     A.GaussNoise(p=1.0),
@@ -65,13 +65,13 @@ def forgetting_sequential_TTA(all_preds, gt, image=None):
     
     return forgetting_map
 
-def compute_forgetting_seq_tta_rankings(image_path, mask_path, csv_path):
+def compute_forgetting_seq_tta_rankings(image_path, mask_path, csv_path, model_path):
 
     scores_list = []
 
     image_files = sorted(
-        Path(img).stem
-        for img in os.listdir(image_path)
+        Path(image_path) / f
+        for f in os.listdir(image_path)
     )
 
     mask_files = {
@@ -80,18 +80,35 @@ def compute_forgetting_seq_tta_rankings(image_path, mask_path, csv_path):
     }
 
     start = time.time()
-    for img in tqdm(image_files, "Processing images"):
+    
+    medsam_path = download_medsam(output_dir=model_path)
+    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
+    if device == "cpu":
+        raise RuntimeError(
+            "CUDA is not available. MedSAM and U-Net require a GPU."
+        )
+        return
+    
+    device = torch.device(device)
+    
+    medsam_model = load_medsam(medsam_path, device=device)
+    
+    for img_file in tqdm(image_files, desc="Computing forgetting scores using TTA..."):
+        
+        img = img_file.stem
             
         all_preds = []
         
         gt_mask_orig, gt_mask_resize = preprocess_gt(mask_files[img], resize=True, imgsz=1024)
-        image_no_resize, img_resize, H, W = preprocess_image(image_files[img], resize=True, imgsz=1024)
+        image_no_resize, img_resize, H, W = preprocess_image_tta(img_file, imgsz=1024)
         
         current = img_resize.copy()
         
         image, gt_256, gt_mask_resize_np = preprocess_image_and_mask(img_resize, gt_mask_resize)
         
-        medsam_seg, _ = predict_medsam(image, gt_256, gt_mask_resize_np, H, W)
+        medsam_seg, _ = predict_medsam(image, gt_256, gt_mask_resize_np, H, W, medsam_model=medsam_model, device=device)
         
         all_preds.append(torch.from_numpy(medsam_seg))
         
@@ -109,7 +126,7 @@ def compute_forgetting_seq_tta_rankings(image_path, mask_path, csv_path):
 
             image_tta = image_tta.unsqueeze(0)
                     
-            medsam_seg, box_np = predict_medsam(image_tta, gt_256, gt_mask_resize_np, H, W, uniform_pad=True)
+            medsam_seg, box_np = predict_medsam(image_tta, gt_256, gt_mask_resize_np, H, W, medsam_model=medsam_model, device=device, uniform_pad=True)
             
             all_preds.append(torch.from_numpy(medsam_seg))
             

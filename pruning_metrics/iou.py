@@ -1,6 +1,9 @@
 import os
 from pathlib import Path
-from time import time
+import time
+import h5py
+import torch
+import cv2
 
 import numpy as np
 import pandas as pd
@@ -35,11 +38,38 @@ def compute_iou_ranking(
 
         mask_file = mask_files[img]
 
-        gt_mask, _ = preprocess_gt(mask_file, resize=True, imgsz=256)
-
-        _, _, pred_mask = get_data_from_name(logits_path, img)
-
         t0 = time.perf_counter()
+
+        _, logits_upsampled, _ = get_data_from_name(
+            logits_path,
+            img
+        )
+        
+        with h5py.File(logits_path, "r") as f:
+            grp = f[f"imgs/{img}"]
+            H = int(grp.attrs["orig_H"])
+            W = int(grp.attrs["orig_W"])
+
+        prob = torch.sigmoid(
+            torch.from_numpy(logits_upsampled)
+        ).numpy()
+
+        prob = np.squeeze(prob)
+
+        prob_resized = cv2.resize(
+            prob,
+            (W, H),
+            interpolation=cv2.INTER_LINEAR
+        )
+
+        pred_mask = (prob_resized >= 0.5).astype(np.uint8)
+
+        gt_mask = cv2.imread(
+            str(mask_file),
+            cv2.IMREAD_GRAYSCALE
+        )
+
+        gt_mask = (gt_mask > 0).astype(np.uint8)
 
         iou_score = compute_iou(pred_mask, gt_mask)
 
@@ -48,16 +78,24 @@ def compute_iou_ranking(
 
         scores_list.append({
             "id": img,
-            "iou": iou_score
+            "iou": float(iou_score)
         })
 
     df = pd.DataFrame(scores_list)
 
     df = df.sort_values("iou", ascending=False)
 
-    df.to_csv(csv_path, index=False, sep=";", decimal=",")
+    output_dir = Path(csv_path).parent
+    output_dir.mkdir(parents=True, exist_ok=True)
+    
+    df.to_csv(
+        csv_path,
+        index=False,
+        sep=";",
+        decimal=","
+    )
 
     print(f"CSV saved in {csv_path}")
-    print(f"Mean IoU time: {np.mean(iou_times):.2f}s")
+    print(f"Mean IoU time: {np.mean(iou_times):.4f}s")
 
     return dict(zip(df["id"], df["iou"]))

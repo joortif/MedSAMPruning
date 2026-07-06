@@ -1,0 +1,16 @@
+albumentations==2.0.8
+anyio==4.6.2.post1
+h5py==3.12.1
+numpy==1.26.4
+opencv_contrib_python==4.10.0.84
+opencv_python==4.10.0.84
+opencv_python_headless==4.10.0.84
+pandas==2.2.3
+Pillow==11.3.0
+pytorch_lightning==2.5.1
+PyYAML==6.0.2
+Requests==2.32.5
+scikit_learn==1.4.2
+segmentation_models_pytorch==0.4.0
+torch==2.8.0
+tqdm==4.66.6

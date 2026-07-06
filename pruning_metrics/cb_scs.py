@@ -40,7 +40,7 @@ def cb_scs(mask_path, out_csv_path):
     per_image_instances = {}
 
     start = time.time()
-    for i, mask in tqdm(masks.items(), desc="Processing masks"):
+    for i, mask in tqdm(masks.items(), desc="Calculating CB-SCS..."):
         per_image_instances[i] = []
         instances = extract_instances_from_semantic_mask(mask)
         for cls, inst_mask in instances:

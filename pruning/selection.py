@@ -1,3 +1,6 @@
+from pathlib import Path
+import shutil
+
 def select_samples(
     scores_dict,
     pruning_rate,
@@ -48,10 +51,6 @@ def select_samples(
 
     return [img_id for img_id, _ in selected]
 
-from pathlib import Path
-import shutil
-
-
 def save_pruned_samples(
     selected_ids,
     images_dir,
@@ -82,9 +81,11 @@ def save_pruned_samples(
     }
 
     copied = 0
-
+    
     for img_id in selected_ids:
-
+        
+        img_id = Path(str(img_id)).stem
+        
         img_path = image_files.get(img_id)
         label_path = label_files.get(img_id)
 

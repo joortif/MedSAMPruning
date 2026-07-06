@@ -15,7 +15,7 @@ def compute_forgetting_scores(images_dir: str, labels_dir: str, model: str, csv_
         image_path = Path(images_dir)
         mask_path = Path(labels_dir)
 
-        forgetting_results = compute_forgetting_seq_tta_rankings(image_path=image_path, mask_path=mask_path, csv_path=csv_path)
+        forgetting_results = compute_forgetting_seq_tta_rankings(image_path=image_path, mask_path=mask_path, csv_path=csv_path, model_path=output_path)
 
     elif model.lower() == "unet":
 

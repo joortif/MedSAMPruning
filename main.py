@@ -1,3 +1,6 @@
+import os 
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+
 import argparse
 import yaml
 
@@ -66,8 +69,7 @@ def build_parser():
 
     pruning_parser.add_argument(
         "--pruning-model",
-        choices=["medsam", "unet"],
-        default="medsam"
+        choices=["medsam", "unet"]
     )
 
     pruning_parser.add_argument(
@@ -139,7 +141,7 @@ def main():
 
     args_config, _ = parser.parse_known_args()
 
-    if args_config.config:
+    if getattr(args_config, "config", None):
         with open(args_config.config, "r") as f:
             config = yaml.safe_load(f) or {}
 
@@ -187,11 +189,6 @@ def main():
         if args.strategy != "fusion" and args.alpha is not None:
             parser.error(
                 "--alpha can only be used with strategy=fusion"
-            )
-
-        if args.strategy == "fusion" and args.alpha is None:
-            parser.error(
-                "--alpha is required when strategy=fusion"
             )
 
         prune_kwargs = dict(

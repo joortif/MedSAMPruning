@@ -85,19 +85,16 @@ def build_sam_vit_b(checkpoint=None):
         checkpoint=checkpoint,
     )
 
-def download_medsam(output_dir=None):
-    if output_dir is None:
-        repo_root = Path(__file__).resolve().parents[2]
-        output_dir = repo_root / "weights"
-    else:
-        output_dir = Path(output_dir).expanduser()
-
+def download_medsam(output_dir):
+    output_dir = Path(output_dir) / "medsam"
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / MEDSAM_FILENAME
 
     if not output_path.exists():
         print("Downloading MedSAM checkpoint...")
         urlretrieve(MEDSAM_URL, output_path)
+    else:
+        print(f"MedSAM checkpoint found in {output_path}")
 
     return output_path
 

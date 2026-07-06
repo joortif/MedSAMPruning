@@ -1,7 +1,8 @@
 from collections import defaultdict
 import os
 from pathlib import Path
-from time import perf_counter, time
+import time
+from time import perf_counter
 from typing import Optional
 import h5py
 import torch
@@ -287,13 +288,13 @@ class Model(pl.LightningModule, SemanticSegmentationModel):
     def save_forgetting_results(self, output_dir=None):
         t0 = perf_counter()
 
-        output_dir = Path(output_dir or self.output_path) / "forgetting"
+        output_dir = Path(output_dir).parent / "ranking"
         output_dir.mkdir(parents=True, exist_ok=True)
 
         image_forgetting = {**self.image_forgetting_train, **self.image_forgetting_val}
 
         image_df = pd.DataFrame([
-            {"id": sid, "forgetting": cnt}
+            {"id": Path(sid).stem, "forgetting": cnt}
             for sid, cnt in image_forgetting.items()
         ]).sort_values("forgetting", ascending=False)
 
@@ -425,7 +426,8 @@ class Model(pl.LightningModule, SemanticSegmentationModel):
         self.model.save_pretrained(output_dir)
 
 def process_unet_batches(
-    data_dir,
+    images_dir,
+    labels_dir,
     model,
     device,
     save_dir,
@@ -433,12 +435,12 @@ def process_unet_batches(
     h5_name="logits_unet.h5",
     imgsz=1024
 ):
-    data_dir = Path(data_dir)
-    image_dir = data_dir / "images"
-    mask_dir = data_dir / "labels"
+    
+    images_dir = Path(images_dir)
+    labels_dir = Path(labels_dir)
 
-    image_paths = sorted([p for p in image_dir.iterdir() if p.is_file()])
-    mask_paths = sorted([p for p in mask_dir.iterdir() if p.is_file()])
+    image_paths = sorted([p for p in images_dir.iterdir() if p.is_file()])
+    mask_paths = sorted([p for p in labels_dir.iterdir() if p.is_file()])
 
     mask_lookup = {p.stem.lower(): p for p in mask_paths}
 
@@ -486,16 +488,17 @@ def process_unet_batches(
 
                 with torch.no_grad():
                     with torch.autocast(device_type=device.type, enabled=(device.type == "cuda")):
-                        logits = model(batch_imgs)
-
-                        logits_up = F.interpolate(
-                            logits,
-                            size=(imgsz, imgsz),
+                        logits_upsampled = model(batch_imgs)
+                                                
+                        logits_low = F.interpolate(
+                            logits_upsampled,
+                            size=(256, 256),
                             mode="bilinear",
                             align_corners=False,
                         )
 
-                logits_cpu = logits_up.detach().cpu().numpy().astype(np.float32)
+                logits_low_cpu = logits_low.detach().cpu().numpy().astype(np.float32)
+                logits_upsampled_cpu = logits_upsampled.detach().cpu().numpy().astype(np.float32)
 
                 for idx, img_id in enumerate(batch_ids):
                     img_path, mask_path, H, W = batch_meta[idx]
@@ -507,8 +510,14 @@ def process_unet_batches(
                     g = h5_f.create_group(grp_name)
 
                     g.create_dataset(
-                        "logits",
-                        data=logits_cpu[idx],
+                        "logits_low",
+                        data=logits_low_cpu[idx],
+                        compression="lzf",
+                    )
+
+                    g.create_dataset(
+                        "logits_upsampled",
+                        data=logits_upsampled_cpu[idx],
                         compression="lzf",
                     )
 
@@ -521,7 +530,7 @@ def process_unet_batches(
 
                 h5_f.flush()
 
-                del batch_imgs, logits, logits_up, logits_cpu
+                del batch_imgs, logits_low, logits_upsampled, logits_low_cpu, logits_upsampled_cpu
                 torch.cuda.empty_cache() if device.type == "cuda" else None
 
         finally:

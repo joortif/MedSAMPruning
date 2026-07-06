@@ -1,4 +1,5 @@
 import os
+import torch
 from pathlib import Path
 
 from datasets.dataset import split_dataset
@@ -7,14 +8,25 @@ from models.medsam.medsam import process_medsam_batches
 from models.smp.train_model import train_pruning_model
 from models.smp.unet import process_unet_batches
 
+
 def extract_logits(images_dir: str, labels_dir: str, model: str, batch_size: int, output_path: str, val_size: float, epochs: int, forgetting: bool = False):
 
     model = model.lower()
+    
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    
+    if device == "cpu":
+        raise RuntimeError(
+            "CUDA is not available. MedSAM and U-Net require a GPU."
+        )
+        return
+    
+    device = torch.device(device)
 
-    if model.lower() == "medsam":
-        medsam_path = download_medsam(output_dir = Path(output_path / "medsam"))
+    if model== "medsam":
+        medsam_path = download_medsam(output_dir = Path(output_path) / "medsam" )
         
-        medsam_model = load_medsam(medsam_path)
+        medsam_model = load_medsam(medsam_path, device=device)
 
         image_path = Path(images_dir)
         mask_path = Path(labels_dir)
@@ -32,13 +44,14 @@ def extract_logits(images_dir: str, labels_dir: str, model: str, batch_size: int
             medsam_model=medsam_model,
             batch_size=batch_size,
             save_dir=str(output_dir),
+            device = device,
             h5_name=f"logits_{model.lower()}.h5",
         )
 
         print(f"MedSAM logits saved in {output_dir}")
         print(f"Total processing time: {total_time:.2f} s")
     
-    elif model.lower() == "unet":
+    elif model == "unet":
 
         output_path_split = Path(output_path) / "split"
 
@@ -63,12 +76,13 @@ def extract_logits(images_dir: str, labels_dir: str, model: str, batch_size: int
 
         if not forgetting:
             process_unet_batches(
-                unet_model=unet_model.model,
+                model=unet_model.model,
                 images_dir=images_dir,
                 labels_dir=labels_dir,
                 batch_size=batch_size,
-                output_path=os.path.join(output_path, "logits"),
-                h5_name=f"logits_{model.lower()}.h5"
+                save_dir=os.path.join(output_path, "logits"),
+                h5_name=f"logits_{model.lower()}.h5",
+                device=device
             )
 
     else:
