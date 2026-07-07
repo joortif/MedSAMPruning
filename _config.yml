@@ -1,0 +1,5 @@
+remote_theme: pages-themes/cayman@v0.2.0
+plugins:
+- jekyll-remote-theme
+title: Semantic Segmentation Pruning using MedSAM
+description: Library for Adapted Pruning Methods for Semantic Segmentation using MedSAM
