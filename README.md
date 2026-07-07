@@ -83,7 +83,7 @@ python main.py prune \
 | Argument         | Description                                                                                          |
 | ---------------- | ---------------------------------------------------------------------------------------------------- |
 | `--dataset-path` | Path to the dataset directory. It must contain `images` and `labels` subdirectories.                 |
-| `--output-path`  | Directory where the pruned dataset will be stored.                                                   |
+| `--output-path`  | Directory where the pruned dataset and intermediate results will be stored (logits, rankings, etc).  |
 | `--pruning-rate` | Fraction of samples to remove. Must be in the range `(0,1)`.                                         |
 | `--strategy`     | Pruning strategy. Available options: `iou`, `cb-scs`, `el2n`, `entropy`, `forgetting`, and `fusion`. |
 | `--selection`    | Sample selection policy: `easy`, `hard`, or `mixed`.                                                 |
@@ -95,7 +95,7 @@ python main.py prune \
 | `--pruning-model` | Model used to extract logits when required by the pruning strategy (`medsam` or `unet`).                                     |
 | `--logits-path`   | Path to a precomputed logits file (`.h5`). If provided, logits extraction is skipped.                                        |
 | `--batch-size`    | Batch size used during logits extraction.                                                                                    |
-| `--seed`          | Random seed for reproducibility.                                                                                             |
+| `--seed`          | Random seed for reproducibility when using U-Net.                                                                            |
 | `--epochs`        | Number of training epochs when using U-Net as the pruning model.                                                             |
 | `--val-size`      | Validation split used when training U-Net. Must be in the range `[0,1]`.                                                     |
 | `--alpha`         | Weight assigned to the CB-SCS score in the fusion strategy. Must be in the range `[0,1]`. Only valid when `strategy=fusion`. |
