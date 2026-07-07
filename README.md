@@ -1,4 +1,4 @@
-# MedSAM Pruning
+# Dataset Pruning for Semantic Segmentation using MedSAM
 
 Deep learning models for medical semantic segmentation have wide applications to identify different kinds of lesions. However, building those models require large amounts of annotated data and substantial computational resources to achieve competitive results. These drawbacks have been tackled in other computer vision tasks, such as image classification, by developing dataset pruning methods.
 
