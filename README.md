@@ -28,8 +28,7 @@ class for sample i. The entropy-based importance is then defined as:
 
 * **Intersection over Union (IoU)**: Although this metric is traditionally used to evaluate the performance of segmentation models, we use it as a proxy for sample difficulty based on the predictions of an intermediate model. Samples with lower IoU scores are considered more challenging to segment and, therefore, more informative than those with higher IoU values.
 
-* **Class-Balanced Shape Complexity Score (CB-SCS)**: This cri-
-terion measures the structural complexity of the object(s) present in an
+* **Class-Balanced Shape Complexity Score (CB-SCS)**: This criterion measures the structural complexity of the object(s) present in an
 image using only the ground-truth annotations. The score is computed
 using the perimeter and area of the annotated object(s).
 
